@@ -169,7 +169,8 @@ class EscrowTransaction(models.Model):
     released_at = models.DateTimeField(null=True, blank=True)
     refunded_at = models.DateTimeField(null=True, blank=True)
     service_id = models.UUIDField(null=True, blank=True, help_text="Optional reference to a service request")
-
+    released = models.BooleanField(default=False)
+    disputed = models.BooleanField(default=False)
     class Meta:
         ordering = ['-created_at']
 

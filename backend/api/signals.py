@@ -7,7 +7,8 @@ from .models import EscrowTransaction, User, Profile
 
 @receiver(post_save, sender=EscrowTransaction)
 def auto_release_escrow(sender, instance, **kwargs):
-    if not instance.released and timezone.now() >= instance.release_date:
+    if not instance.released and instance.released_at and timezone.now() >= instance.released_at:
+        """Automatically release funds if the escrow is marked as released."""
         instance.status = 'released'
         instance.released = True
         instance.save()
