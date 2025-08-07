@@ -34,7 +34,7 @@ export default function Features() {
             <h3 className="font-semibold text-lg text-gray-900">
               {item.title}
             </h3>
-            <p className="text-gray-500 text-sm mt-2">{item.desc}</p>
+            <p className="text-gray-500 text-sm mt-2 px-4">{item.desc}</p>
           </div>
         ))}
       </div>

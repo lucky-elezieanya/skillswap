@@ -35,12 +35,12 @@ export default function Footer() {
         {/* Brand and Description */}
         <div>
           <div className="flex items-center gap-3 mb-4">
-            <Image
+            {/* <Image
               src="/logo.png"
               alt="SkillSwap Logo"
               width={40}
               height={40}
-            />
+            /> */}
             <h2 className="text-2xl font-bold">SkillSwap</h2>
           </div>
           <p className="text-blue-100 text-sm leading-relaxed">

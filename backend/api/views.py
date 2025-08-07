@@ -22,8 +22,38 @@ from .serializers import (
     UserSerializer, ProfileSerializer, SkillSerializer,
     CategorySerializer, ServiceSerializer, BookingSerializer,
     ReviewSerializer, TrustBadgeSerializer, MessageSerializer,
-    PaymentTransactionSerializer, EscrowTransactionSerializer, LocationSerializer
+    PaymentTransactionSerializer, EscrowTransactionSerializer, LocationSerializer, SignupSerializer
 )
+from rest_framework.authtoken.models import Token
+from django.contrib.auth import authenticate
+from django.contrib.auth.hashers import make_password
+from django.contrib.auth import get_user_model
+from django.utils.http import urlsafe_base64_decode
+
+
+from django.contrib.auth import get_user_model
+from django.contrib.auth.hashers import make_password
+from django.contrib.auth.tokens import default_token_generator
+from django.utils.http import urlsafe_base64_encode
+from django.utils.encoding import force_bytes
+
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from rest_framework import status, permissions
+from rest_framework.authtoken.models import Token
+
+from django.core.mail import send_mail
+from django.urls import reverse
+
+
+from django.utils.http import urlsafe_base64_decode
+from django.utils.encoding import force_str
+from django.core.mail import EmailMultiAlternatives
+from .utils.email import send_verification_email
+
+
+User = get_user_model()
+
 
 # --- API Views ---
 
@@ -31,8 +61,11 @@ from .serializers import (
 class UserViewSet(viewsets.ModelViewSet):
     queryset = User.objects.all()
     serializer_class = UserSerializer
-    permission_classes = [permissions.IsAuthenticated]
 
+    def get_permissions(self):
+        if self.action == 'create':  # Allow signup
+            return [permissions.AllowAny()]
+        return [permissions.IsAuthenticated()]
 # --- 2. ProfileViewSet ---
 class ProfileViewSet(viewsets.ModelViewSet):
     queryset = Profile.objects.all()
@@ -164,7 +197,6 @@ class ProviderDashboardView(APIView):
         }
         return Response(data)
 
-
 class AdminDashboardView(APIView):
     permission_classes = [IsAdminUser]
 
@@ -190,7 +222,6 @@ class AdminDashboardView(APIView):
         }
         return Response(data)
 
-
 class CustomerDashboardView(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -210,7 +241,6 @@ class CustomerDashboardView(APIView):
         }
         return Response(data)
     
-
 class EscrowTransactionViewSet(viewsets.ModelViewSet):
     queryset = EscrowTransaction.objects.all()
     serializer_class = EscrowTransactionSerializer
@@ -223,4 +253,126 @@ class LocationListView(generics.ListAPIView):
     filter_backends = [filters.SearchFilter, DjangoFilterBackend]
     search_fields = ['city', 'state', 'country']
     filterset_fields = ['city', 'state', 'country']
+
+class LoginView(APIView):
+    def post(self, request):
+        identifier = request.data.get("identifier")  # Could be email or username
+        password = request.data.get("password")
+
+        user = authenticate(request, username=identifier, password=password)
+
+        if user is not None:
+            token, _ = Token.objects.get_or_create(user=user)
+            response = Response({
+                "token": token.key,
+                "user_id": user.id,
+                "username": user.username,
+                "email": user.email,
+                "is_provider": user.is_provider,
+            })
+            response.set_cookie("token", token.key, httponly=True, secure=False)  # secure=True in production
+            return response
+
+        return Response({"detail": "Invalid credentials"}, status=status.HTTP_401_UNAUTHORIZED)
+
+
+class SignupView(APIView):
+    permission_classes = [permissions.AllowAny]
+
+    def post(self, request):
+        data = request.data
+        email = data.get('email')
+        username = data.get('username')
+        password = data.get('password')
+        phone = data.get('phone', '')
+        location = data.get('location', '')
+
+        if not all([email, username, password]):
+            return Response({'detail': 'Missing required fields'}, status=status.HTTP_400_BAD_REQUEST)
+
+        if User.objects.filter(email=email).exists():
+            return Response({'detail': 'Email already exists'}, status=status.HTTP_400_BAD_REQUEST)
+
+        if User.objects.filter(username=username).exists():
+            return Response({'detail': 'Username already exists'}, status=status.HTTP_400_BAD_REQUEST)
+
+        user = User.objects.create(
+            username=username,
+            email=email,
+            password=make_password(password),
+            phone=phone,
+            location=location,
+            is_verified=False,  # 🔒 wait until email is verified
+        )
+
+        # Generate auth token (for auto-login)
+        token = Token.objects.create(user=user)
+
+        # Generate email verification link
+        uid = urlsafe_base64_encode(force_bytes(user.pk))
+        email_token = default_token_generator.make_token(user)
+        verify_url = request.build_absolute_uri(
+            reverse("verify-email", kwargs={"uidb64": uid, "token": email_token})
+        )
+
+        # Send the verification email
+        # send_mail(
+        #     "Verify Your SkillSwap Account",
+        #     f"Click the link to verify your email: {verify_url}",
+        #     "no-reply@skillswap.com",
+        #     [email],
+        #     fail_silently=False,
+        # )
+        send_verification_email(user, request)
+
+        return Response({
+            "message": "Signup successful. Verification email sent.",
+            "token": token.key,
+        }, status=status.HTTP_201_CREATED)
+
+class VerifyEmailView(APIView):
+    permission_classes = [permissions.AllowAny]
+
+    def get(self, request, uidb64, token):
+        try:
+            uid = force_str(urlsafe_base64_decode(uidb64))
+            user = User.objects.get(pk=uid)
+        except Exception:
+            return Response({"detail": "Invalid verification link"}, status=400)
+
+        if default_token_generator.check_token(user, token):
+            user.is_verified = True
+            user.save()
+            return Response({"message": "Email verified successfully!"})
+        return Response({"detail": "Invalid or expired token"}, status=400)
+
+class ResendVerificationView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request):
+        user = request.user
+
+        if user.is_verified:
+            return Response({"message": "User is already verified."}, status=400)
+
+        uid = urlsafe_base64_encode(force_bytes(user.pk))
+        token = default_token_generator.make_token(user)
+        verify_url = request.build_absolute_uri(
+            reverse("verify-email", kwargs={"uidb64": uid, "token": token})
+        )
+
+        # send_mail(
+        #     "Resend: Verify Your SkillSwap Account",
+        #     f"Click the link to verify your email: {verify_url}",
+        #     "no-reply@skillswap.com",
+        #     [user.email],
+        #     fail_silently=False,
+        # )
+
+        send_verification_email(user, request)
+
+        return Response({"message": "Verification email resent successfully."})
+
+
+
 # --- End of Views ---

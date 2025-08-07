@@ -1,38 +1,5 @@
-// "use client";
-
-// import Image from "next/image";
-
-// export default function Hero() {
-//   return (
-//     <section className="bg-blue-900 text-white py-16 px-6 md:px-20">
-//       <div className="grid grid-cols-1 md:grid-cols-2 gap-10 items-center">
-//         <div className="z-100">
-//           <h1 className="text-4xl md:text-5xl font-bold mb-4">
-//             Swap Skills, Not Bills
-//           </h1>
-//           <p className="mb-6 max-w-md text-lg">
-//             Barter or offer services securely with professionals in your area or
-//             globally.
-//           </p>
-//           <button className="bg-white text-blue-600 font-semibold px-6 py-3 rounded-md hover:bg-blue-100">
-//             Get Started
-//           </button>
-//         </div>
-//         <div>
-//           <Image
-//             src="/images/hero-1.webp"
-//             alt="Freelancer woman"
-//             width={500}
-//             height={500}
-//             className="rounded-lg shadow-lg object- w-full h-full"
-//           />
-//         </div>
-//       </div>
-//     </section>
-//   );
-// }
-
-// components/HeroSection.tsx
+// components/Hero.tsx
+"use client";
 import Image from "next/image";
 import Link from "next/link";
 import { Button } from "@/components/ui/button"; // Using ShadCN or Tailwind-based button
@@ -64,16 +31,16 @@ export default function Hero() {
 
         {/* Buttons */}
         <div className="flex items-center gap-4">
-          <Link href="/login">
+          <Link href="/login" className="">
             <Button
               variant="ghost"
-              className="text-white hover:bg-white hover:text-blue-600 transition-colors"
+              className="w-full text-white hover:bg-white hover:text-blue-600 transition-colors"
             >
               Log In
             </Button>
           </Link>
-          <Link href="/signup">
-            <Button className="bg-blue-600 hover:bg-blue-700 text-white transition-colors">
+          <Link href="/signup" className="">
+            <Button className="w-full bg-blue-600 hover:bg-blue-700 text-white transition-colors">
               Sign Up
             </Button>
           </Link>

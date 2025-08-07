@@ -1,17 +1,22 @@
-from django.contrib.auth.models import AbstractUser
+from django.contrib.auth.models import AbstractUser, PermissionsMixin, AbstractBaseUser
 from django.db import models
-# from django.contrib.auth import get_user_model
 from django.utils import timezone
 from django.conf import settings
+from datetime import timedelta
+
 
 # 1. User
-class User(AbstractUser):
+class User(AbstractUser, PermissionsMixin):
+    email = models.EmailField(unique=True)
     is_provider = models.BooleanField(default=False)
     phone = models.CharField(max_length=20, blank=True)
     location = models.CharField(max_length=255, blank=True)
     is_verified = models.BooleanField(default=False)
     community_verified = models.BooleanField(default=False)
     video_intro_url = models.URLField(blank=True, null=True)
+
+    
+    REQUIRED_FIELDS = []  # or other required fields
 
     def __str__(self):
         return f"{self.username} ({'Provider' if self.is_provider else 'Client'})"
@@ -96,7 +101,6 @@ class Booking(models.Model):
     def __str__(self):
         return f"Booking {self.id} - {self.client.username} → {self.service.title}"
 
-
 # 6. Review
 class Review(models.Model):
     reviewer = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='given_reviews')
@@ -108,7 +112,6 @@ class Review(models.Model):
     def __str__(self):
         return f"{self.rating}⭐ from {self.reviewer.username} to {self.provider.username}"
 
-
 # 7. TrustBadge
 class TrustBadge(models.Model):
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
@@ -119,7 +122,6 @@ class TrustBadge(models.Model):
 
     def __str__(self):
         return f"{self.title} - {self.user.username}"
-
 
 # 8. Message
 class Message(models.Model):
@@ -150,8 +152,7 @@ class PaymentTransaction(models.Model):
     def __str__(self):
         return f"Transaction #{self.booking.id} - {self.status}"
 
-
-
+# Escrow Transaction
 class EscrowTransaction(models.Model):
     STATUS_CHOICES = [
         ('pending', 'Pending'),
@@ -171,6 +172,7 @@ class EscrowTransaction(models.Model):
     service_id = models.UUIDField(null=True, blank=True, help_text="Optional reference to a service request")
     released = models.BooleanField(default=False)
     disputed = models.BooleanField(default=False)
+
     class Meta:
         ordering = ['-created_at']
 
@@ -193,7 +195,12 @@ class EscrowTransaction(models.Model):
         """Logic to determine if funds can be released (e.g., service complete)."""
         return self.status == 'pending'
 
-# 10. Location
+    def save(self, *args, **kwargs):
+        if not self.released_at:
+            self.released_at = timezone.now() + timedelta(days=7)  # auto release in 7 days
+        super().save(*args, **kwargs)
+
+# 11. Location
 class Location(models.Model):
     city = models.CharField(max_length=100)
     state = models.CharField(max_length=100, blank=True, null=True)

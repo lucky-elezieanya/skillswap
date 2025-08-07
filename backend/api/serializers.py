@@ -6,6 +6,25 @@ from .models import (
 )
 
 User = get_user_model()
+class SignupSerializer(serializers.ModelSerializer):
+    password = serializers.CharField(write_only=True)
+
+    class Meta:
+        model = User
+        fields = ['email', 'username', 'password', 'phone', 'location', 'is_provider']
+
+    def create(self, validated_data):
+        user = User(
+            email=validated_data['email'],
+            username=validated_data.get('username', ''),
+            phone=validated_data.get('phone', ''),
+            location=validated_data.get('location', ''),
+            is_provider=validated_data.get('is_provider', False),
+        )
+        user.set_password(validated_data['password'])
+        user.save()
+        return user
+
 
 # --- 1. UserSerializer ---
 class UserSerializer(serializers.ModelSerializer):

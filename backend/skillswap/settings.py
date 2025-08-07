@@ -72,6 +72,10 @@ DATABASES = {
     }
 }
 
+AUTHENTICATION_BACKENDS = [
+    'api.backends.EmailOrUsernameModelBackend', 
+]
+
 
 # Password validation
 # https://docs.djangoproject.com/en/4.2/ref/settings/#auth-password-validators
@@ -98,30 +102,41 @@ REST_FRAMEWORK = {
         'rest_framework.filters.OrderingFilter',
     ],
     'DEFAULT_AUTHENTICATION_CLASSES': [
-        'rest_framework.authentication.SessionAuthentication',
+        # 'rest_framework.authentication.SessionAuthentication',
+        'rest_framework.authentication.TokenAuthentication',
         'rest_framework.authentication.BasicAuthentication',
         'rest_framework.authentication.TokenAuthentication',
     ],
     'DEFAULT_PERMISSION_CLASSES': [
-        'rest_framework.permissions.IsAuthenticatedOrReadOnly',
+        # 'rest_framework.permissions.IsAuthenticatedOrReadOnly',
+        'rest_framework.permissions.AllowAny',
     ]
 }
 
 
 # CORS settings
-CORS_ALLOW_ALL_ORIGINS = True  # for dev only
 
+
+CORS_ALLOW_CREDENTIALS = True  # if you need to allow cookies or HTTP authentication
 # In production, better to use:
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:3000",
-    "http://127.0.0.1:3000",
-    # "https://yourfrontend.com",
+    "http://127.0.0.1:3000", # "https://yourfrontend.com",
 ]
 
-# CORS_ALLOW_CREDENTIALS = True  # if you need to allow cookies or HTTP authentication
 
 # Custom User Model
 AUTH_USER_MODEL = 'api.User'
+
+
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = 'smtp.gmail.com'
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
+EMAIL_HOST_USER = 'emekaebere1998@gmail.com'
+EMAIL_HOST_PASSWORD = 'atsgantluuwrixdy'
+DEFAULT_FROM_EMAIL = 'SkillSwap emekaebere1998@gmail.com>'
+
 
 # Internationalization
 # https://docs.djangoproject.com/en/4.2/topics/i18n/
