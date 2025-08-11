@@ -50,7 +50,7 @@ export default function SignupForm() {
     setLoading(true);
 
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/users/`, {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/signup/`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -165,7 +165,7 @@ export default function SignupForm() {
               target="_blank"
               className="text-sky-600 hover:underline"
             >
-              terms and privacy policy
+              Terms and Privacy Policy
             </a>
           </Label>
         </div>

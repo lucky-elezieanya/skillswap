@@ -10,7 +10,7 @@ export default function Hero() {
       {/* Background Image */}
       <div className="absolute inset-0 z-0">
         <Image
-          src="/images/hero.webp" // Ensure this is in your /public/images folder
+          src="/images/hero-2.jpeg" // Ensure this is in your /public/images folder
           alt="Hero background"
           fill
           className="object-cover"
@@ -23,7 +23,7 @@ export default function Hero() {
       <div className="absolute top-0 left-0 w-full z-20 flex items-center justify-between px-6 py-5">
         {/* Logo */}
         <div className="flex items-center gap-2">
-          {/* <Image src="/logo.png" alt="SkillSwap Logo" width={40} height={40} /> */}
+          <Image src="/images/icon.jpeg" alt="SkillSwap Logo" width={30} height={30} />
           <h1 className="text-white text-2xl font-bold tracking-wide">
             SkillSwap
           </h1>
@@ -31,19 +31,20 @@ export default function Hero() {
 
         {/* Buttons */}
         <div className="flex items-center gap-4">
-          <Link href="/login" className="">
+          
+          <a href="/login" >
             <Button
               variant="ghost"
               className="w-full text-white hover:bg-white hover:text-blue-600 transition-colors"
             >
               Log In
             </Button>
-          </Link>
-          <Link href="/signup" className="">
+          </a>
+          <a href="/signup">
             <Button className="w-full bg-blue-600 hover:bg-blue-700 text-white transition-colors">
               Sign Up
             </Button>
-          </Link>
+          </a>
         </div>
       </div>
 

@@ -27,3 +27,4 @@ def send_verification_email(user, request):
     email = EmailMultiAlternatives(subject, text, "no-reply@skillswap.com", [user.email])
     email.attach_alternative(html, "text/html")
     email.send()
+  

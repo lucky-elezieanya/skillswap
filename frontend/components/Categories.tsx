@@ -13,7 +13,7 @@ export default function Categories() {
       <h2 className="text-3xl font-bold text-center mb-10 text-gray-800">
         Popular Categories
       </h2>
-      <div className="flex flex-wra justify-center gap-4">
+      <div className="flex flex-wrap justify-center gap-4">
         {categories.map((cat, idx) => {
           return (
             <div

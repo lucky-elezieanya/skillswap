@@ -29,32 +29,25 @@ from django.contrib.auth import authenticate
 from django.contrib.auth.hashers import make_password
 from django.contrib.auth import get_user_model
 from django.utils.http import urlsafe_base64_decode
-
-
 from django.contrib.auth import get_user_model
 from django.contrib.auth.hashers import make_password
 from django.contrib.auth.tokens import default_token_generator
 from django.utils.http import urlsafe_base64_encode
 from django.utils.encoding import force_bytes
-
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status, permissions
 from rest_framework.authtoken.models import Token
-
 from django.core.mail import send_mail
 from django.urls import reverse
-
-
 from django.utils.http import urlsafe_base64_decode
 from django.utils.encoding import force_str
 from django.core.mail import EmailMultiAlternatives
 from .utils.email import send_verification_email
+import logging
 
-
+logger = logging.getLogger(__name__)
 User = get_user_model()
-
-
 # --- API Views ---
 
 # --- 1. UserViewSet ---
@@ -246,18 +239,27 @@ class EscrowTransactionViewSet(viewsets.ModelViewSet):
     serializer_class = EscrowTransactionSerializer
     permission_classes = [IsAdminUser]
 
-
 class LocationListView(generics.ListAPIView):
     queryset = Location.objects.all()
     serializer_class = LocationSerializer
     filter_backends = [filters.SearchFilter, DjangoFilterBackend]
     search_fields = ['city', 'state', 'country']
     filterset_fields = ['city', 'state', 'country']
-
 class LoginView(APIView):
+    permission_classes = [permissions.AllowAny]
     def post(self, request):
-        identifier = request.data.get("identifier")  # Could be email or username
+        identifier = request.data.get("identifier")  # username OR email
         password = request.data.get("password")
+        if not identifier or not password:
+            return Response({"detail": "Identifier and password are required"}, status=status.HTTP_400_BAD_REQUEST)
+        # If identifier is an email, get the username for authentication
+        try:
+            if "@" in identifier:
+                user_obj = User.objects.filter(email__iexact=identifier).first()
+                if user_obj:
+                    identifier = user_obj.username
+        except User.DoesNotExist:
+            pass
 
         user = authenticate(request, username=identifier, password=password)
 
@@ -268,14 +270,22 @@ class LoginView(APIView):
                 "user_id": user.id,
                 "username": user.username,
                 "email": user.email,
-                "is_provider": user.is_provider,
+                "is_provider": getattr(user, "is_provider", False),
             })
-            response.set_cookie("token", token.key, httponly=True, secure=False)  # secure=True in production
+            # Set token as HTTP-only cookie
+            response.set_cookie(
+                "token",
+                token.key,
+                httponly=True,
+                secure=False,  # Change to True in production with HTTPS
+                samesite="Lax",
+                max_age=60 * 60 * 24 * 7  # 1 week
+            )
             return response
 
         return Response({"detail": "Invalid credentials"}, status=status.HTTP_401_UNAUTHORIZED)
 
-
+# --- Signup and Email Verification Views ---
 class SignupView(APIView):
     permission_classes = [permissions.AllowAny]
 
@@ -296,16 +306,17 @@ class SignupView(APIView):
         if User.objects.filter(username=username).exists():
             return Response({'detail': 'Username already exists'}, status=status.HTTP_400_BAD_REQUEST)
 
+        # Create the user
         user = User.objects.create(
             username=username,
             email=email,
             password=make_password(password),
             phone=phone,
             location=location,
-            is_verified=False,  # 🔒 wait until email is verified
+            is_verified=False,  # Wait for email verification
         )
 
-        # Generate auth token (for auto-login)
+        # Create authentication token
         token = Token.objects.create(user=user)
 
         # Generate email verification link
@@ -315,20 +326,48 @@ class SignupView(APIView):
             reverse("verify-email", kwargs={"uidb64": uid, "token": email_token})
         )
 
-        # Send the verification email
-        # send_mail(
-        #     "Verify Your SkillSwap Account",
-        #     f"Click the link to verify your email: {verify_url}",
-        #     "no-reply@skillswap.com",
-        #     [email],
-        #     fail_silently=False,
-        # )
-        send_verification_email(user, request)
+        # Try sending verification email, but don't break signup if it fails
+        try:
+            send_verification_email(user, request)
+        except Exception as e:
+            logger.error(f"Error sending verification email to {email}: {e}")
+            # Optional: attach the verify_url to response for manual testing
+            verify_url = request.build_absolute_uri(
+                reverse("verify-email", kwargs={"uidb64": uid, "token": email_token})
+            )
+            return Response({
+                "message": "Signup successful, but email could not be sent.",
+                "verification_link": verify_url,  # helpful for local dev
+                "token": token.key,
+                "user_id": user.id,
+                "username": user.username,
+                "email": user.email,
+                "is_provider": getattr(user, "is_provider", False),
+                "is_verified": user.is_verified
+            }, status=status.HTTP_201_CREATED)
 
-        return Response({
+        # Normal successful response
+        response = Response({
             "message": "Signup successful. Verification email sent.",
             "token": token.key,
+            "user_id": user.id,
+            "username": user.username,
+            "email": user.email,
+            "is_provider": getattr(user, "is_provider", False),
+            "is_verified": user.is_verified
         }, status=status.HTTP_201_CREATED)
+
+        # Set token as HTTP-only cookie for auto-login
+        response.set_cookie(
+            "token",
+            token.key,
+            httponly=True,
+            secure=False,  # Change to True in production
+            samesite="Lax",
+            max_age=60 * 60 * 24 * 7  # 1 week
+        )
+
+        return response
 
 class VerifyEmailView(APIView):
     permission_classes = [permissions.AllowAny]
@@ -372,7 +411,5 @@ class ResendVerificationView(APIView):
         send_verification_email(user, request)
 
         return Response({"message": "Verification email resent successfully."})
-
-
 
 # --- End of Views ---

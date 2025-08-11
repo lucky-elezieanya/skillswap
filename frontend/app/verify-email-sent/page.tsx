@@ -18,7 +18,7 @@ export default function VerifyEmailSent() {
       </p>
       <p className="text-gray-600 mb-6">
         Please click the link in that email to activate your SkillSwap account.
-        Check your spam folder if you don't see it.
+        Check your spam folder if you don&#39;t see it.
       </p>
       <Link href="/login" className="text-sky-600 hover:underline font-medium">
         Go to Login

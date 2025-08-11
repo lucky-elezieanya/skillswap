@@ -23,12 +23,12 @@ router.register('transactions', PaymentTransactionViewSet)
 
 urlpatterns = [
     path('', include(router.urls)),
-    path('login/', LoginView.as_view(), name='login'),  # ✅ Login 
-    path("api/signup/", SignupView.as_view(), name="signup"),
-    path("api/verify-email/<uidb64>/<token>/", VerifyEmailView.as_view(), name="verify-email"),
-    path("api/resend-verification/", ResendVerificationView.as_view(), name="resend-verification"),
+    path('login/', LoginView.as_view(), name='login'),  # ✅ Login
+    path('signup/', SignupView.as_view(), name='signup'),
+    path("verify-email/<uidb64>/<token>/", VerifyEmailView.as_view(), name="verify-email"),
+    path("resend-verification/", ResendVerificationView.as_view(), name="resend-verification"),
 
-    path("api/verify-email/<uidb64>/<token>/", VerifyEmailView.as_view(), name="verify-email"),
+    path("verify-email/<uidb64>/<token>/", VerifyEmailView.as_view(), name="verify-email"),
     path('dashboard/provider/', ProviderDashboardView.as_view(), name='provider-dashboard'),
     path('dashboard/admin/', AdminDashboardView.as_view(), name='admin-dashboard'),
     path('dashboard/customer/', CustomerDashboardView.as_view(), name='customer-dashboard'),

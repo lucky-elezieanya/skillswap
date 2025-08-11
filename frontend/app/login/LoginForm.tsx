@@ -6,6 +6,8 @@ import * as z from "zod";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import Link from "next/link";
+import { FcGoogle } from "react-icons/fc";
+import { FaApple } from "react-icons/fa";
 
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -134,20 +136,19 @@ export default function LoginForm() {
       </div>
 
       {/* Future: Social login buttons */}
-      {/*
+
       <div className="mt-6">
-        <div className="flex items-center space-x-4">
-          <button className="w-full border px-4 py-2 rounded flex items-center justify-center space-x-2 hover:bg-gray-100">
+        <div className="flex flex-wrap gap-4 items-center space-x-4">
+          <Button className="w-full border px-4 py-2 rounded flex items-center justify-center space-x-2 hover:bg-gray-100">
             <FcGoogle className="text-xl" />
             <span>Continue with Google</span>
-          </button>
-          <button className="w-full border px-4 py-2 rounded flex items-center justify-center space-x-2 hover:bg-gray-100">
-            <AppleIcon className="text-xl" />
+          </Button>
+          <Button className="w-full border px-4 py-2 rounded flex items-center justify-center space-x-2 hover:bg-gray-100">
+            <FaApple className="text-xl" />
             <span>Continue with Apple</span>
-          </button>
+          </Button>
         </div>
       </div>
-      */}
     </div>
   );
 }
