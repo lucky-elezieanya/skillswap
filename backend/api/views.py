@@ -364,7 +364,7 @@ class SignupView(APIView):
             httponly=True,
             secure=False,  # Change to True in production
             samesite="Lax",
-            max_age=60 * 60 * 24 * 7  # 1 week
+            max_age=60 * 60 * 24 * 1  # 1 day
         )
 
         return response
