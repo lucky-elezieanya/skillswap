@@ -21,7 +21,6 @@ export default function SignupForm() {
   });
 
   const [agreeToTerms, setAgreeToTerms] = useState(false);
-
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
   ) => {

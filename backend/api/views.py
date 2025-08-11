@@ -296,6 +296,7 @@ class SignupView(APIView):
         password = data.get('password')
         phone = data.get('phone', '')
         location = data.get('location', '')
+        is_provider = data.get('is_provider', False)
 
         if not all([email, username, password]):
             return Response({'detail': 'Missing required fields'}, status=status.HTTP_400_BAD_REQUEST)
@@ -313,6 +314,7 @@ class SignupView(APIView):
             password=make_password(password),
             phone=phone,
             location=location,
+            is_provider=is_provider,
             is_verified=False,  # Wait for email verification
         )
 
