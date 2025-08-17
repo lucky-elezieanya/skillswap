@@ -1,4 +1,4 @@
-from django.shortcuts import render
+from django.shortcuts import render, redirect
 from rest_framework import viewsets, permissions, status,  generics, filters
 from rest_framework.response import Response
 from rest_framework.decorators import action
@@ -286,91 +286,6 @@ class LoginView(APIView):
         return Response({"detail": "Invalid credentials"}, status=status.HTTP_401_UNAUTHORIZED)
 
 # --- Signup and Email Verification Views ---
-# class SignupView(APIView):
-#     permission_classes = [permissions.AllowAny]
-
-#     def post(self, request):
-#         data = request.data
-#         email = data.get('email')
-#         username = data.get('username')
-#         password = data.get('password')
-#         phone = data.get('phone', '')
-#         location = data.get('location', '')
-#         is_provider = data.get('is_provider', False)
-
-#         if not all([email, username, password]):
-#             return Response({'detail': 'Missing required fields'}, status=status.HTTP_400_BAD_REQUEST)
-
-#         if User.objects.filter(email=email).exists():
-#             return Response({'detail': 'Email already exists'}, status=status.HTTP_400_BAD_REQUEST)
-
-#         if User.objects.filter(username=username).exists():
-#             return Response({'detail': 'Username already exists'}, status=status.HTTP_400_BAD_REQUEST)
-
-#         # Create the user
-#         user = User.objects.create(
-#             username=username,
-#             email=email,
-#             password=make_password(password),
-#             phone=phone,
-#             location=location,
-#             is_provider=is_provider,
-#             is_verified=False,  # Wait for email verification
-#         )
-
-#         # Create authentication token
-#         token = Token.objects.create(user=user)
-
-#         # Generate email verification link
-#         uid = urlsafe_base64_encode(force_bytes(user.pk))
-#         email_token = default_token_generator.make_token(user)
-#         verify_url = request.build_absolute_uri(
-#             reverse("verify-email", kwargs={"uidb64": uid, "token": email_token})
-#         )
-
-#         # Try sending verification email, but don't break signup if it fails
-#         try:
-#             send_verification_email(user, request)
-#         except Exception as e:
-#             logger.error(f"Error sending verification email to {email}: {e}")
-#             # Optional: attach the verify_url to response for manual testing
-#             verify_url = request.build_absolute_uri(
-#                 reverse("verify-email", kwargs={"uidb64": uid, "token": email_token})
-#             )
-#             return Response({
-#                 "message": "Signup successful, but email could not be sent.",
-#                 "verification_link": verify_url,  # helpful for local dev
-#                 "token": token.key,
-#                 "user_id": user.id,
-#                 "username": user.username,
-#                 "email": user.email,
-#                 "is_provider": getattr(user, "is_provider", False),
-#                 "is_verified": user.is_verified
-#             }, status=status.HTTP_201_CREATED)
-
-#         # Normal successful response
-#         response = Response({
-#             "message": "Signup successful. Verification email sent.",
-#             "token": token.key,
-#             "user_id": user.id,
-#             "username": user.username,
-#             "email": user.email,
-#             "is_provider": getattr(user, "is_provider", False),
-#             "is_verified": user.is_verified
-#         }, status=status.HTTP_201_CREATED)
-
-#         # Set token as HTTP-only cookie for auto-login
-#         response.set_cookie(
-#             "token",
-#             token.key,
-#             httponly=True,
-#             secure=False,  # Change to True in production
-#             samesite="Lax",
-#             max_age=60 * 60 * 24 * 1  # 1 day
-#         )
-
-#         return response
-
 class SignupView(APIView):
     permission_classes = [permissions.AllowAny]
 
@@ -432,7 +347,8 @@ class VerifyEmailView(APIView):
             user.is_active = True
             user.is_verified = True
             user.save()
-            return Response({"message": "Email verified successfully. You can now log in."})
+            # return Response({"message": "Email verified successfully. You can now log in."})
+            return redirect("http://localhost:3000/login")  
         else:
             return Response({"message": "Invalid or expired token."}, status=status.HTTP_400_BAD_REQUEST)
 
