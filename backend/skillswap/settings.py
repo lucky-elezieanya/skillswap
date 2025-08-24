@@ -82,7 +82,6 @@ AUTHENTICATION_BACKENDS = [
     'api.backends.EmailOrUsernameModelBackend', 
 ]
 
-
 # Password validation
 # https://docs.djangoproject.com/en/4.2/ref/settings/#auth-password-validators
 
@@ -126,16 +125,30 @@ CORS_ALLOWED_ORIGINS = config("CORS_ALLOWED_ORIGINS", "").split(",")
 # Custom User Model
 AUTH_USER_MODEL = 'api.User'
 
-# Email settings
-EMAIL_BACKEND = config('EMAIL_BACKEND', default='django.core.mail.backends.smtp.EmailBackend')
-EMAIL_HOST = config('EMAIL_HOST', default='smtp.gmail.com')
-EMAIL_PORT = config('EMAIL_PORT', default=587, cast=int)
-EMAIL_USE_TLS = config('EMAIL_USE_TLS', default=True, cast=bool)
-EMAIL_USE_SSL = config('EMAIL_USE_SSL', default=False, cast=bool)
-EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD')
-DEFAULT_FROM_EMAIL = config('DEFAULT_FROM_EMAIL')
-EMAIL_HOST_USER = config('EMAIL_HOST_USER')
+FRONTEND_URL = config("FRONTEND_URL", default="http://localhost:3000")
 
+# Celery / Redis
+CELERY_BROKER_URL = config("CELERY_BROKER_URL", default="redis://127.0.0.1:6379/0")
+CELERY_RESULT_BACKEND = config("CELERY_RESULT_BACKEND", default=CELERY_BROKER_URL)
+# Celery Configuration
+CELERY_BROKER_URL = "redis://127.0.0.1:6379/0"
+CELERY_RESULT_BACKEND = "redis://127.0.0.1:6379/0"
+CELERY_ACCEPT_CONTENT = ["json"]
+CELERY_TASK_SERIALIZER = "json"
+CELERY_RESULT_SERIALIZER = "json"
+CELERY_TIMEZONE = "UTC"
+
+# Email backend: console in DEV, SMTP in PROD
+if config("DEBUG", cast=bool, default=True):
+    EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
+else:
+    EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
+    EMAIL_HOST = config("EMAIL_HOST", default="smtp.gmail.com")
+    EMAIL_PORT = config("EMAIL_PORT", cast=int, default=587)
+    EMAIL_USE_TLS = config("EMAIL_USE_TLS", cast=bool, default=True)
+    EMAIL_HOST_USER = config("EMAIL_HOST_USER")
+    EMAIL_HOST_PASSWORD = config("EMAIL_HOST_PASSWORD")
+DEFAULT_FROM_EMAIL = config("DEFAULT_FROM_EMAIL", default="SkillSwap <no-reply@skillswap.com>")
 
 # Internationalization
 # https://docs.djangoproject.com/en/4.2/topics/i18n/

@@ -1,56 +1,67 @@
-from django.shortcuts import render, redirect
-from rest_framework import viewsets, permissions, status,  generics, filters
-from rest_framework.response import Response
-from rest_framework.decorators import action
-from django.shortcuts import get_object_or_404
-from rest_framework.decorators import action
-from rest_framework.views import APIView
-from rest_framework.permissions import IsAuthenticated, IsAdminUser
-from django.db.models import Count, Sum, Avg
-from django.db.models.functions import TruncMonth
+import logging
 from datetime import datetime
-from django.db.models import Q
+
+from django.conf import settings
+from django.contrib.auth import authenticate, get_user_model
+from django.contrib.auth.hashers import make_password
+from django.contrib.auth.tokens import default_token_generator
+from django.core.mail import EmailMultiAlternatives, send_mail
+from django.db.models import Count, Sum, Avg, Q
+from django.db.models.functions import TruncMonth
+from django.shortcuts import redirect
+
+from django.utils.encoding import force_str
+from django.utils.http import  urlsafe_base64_decode
+
+from rest_framework import viewsets, generics, permissions, status, filters
+from rest_framework.decorators import action, permission_classes, api_view
+from rest_framework.response import Response
+from rest_framework.views import APIView
+from rest_framework.authtoken.models import Token
+from rest_framework.filters import SearchFilter, OrderingFilter
+from rest_framework.permissions import IsAuthenticated, IsAdminUser
+
+from django_filters.rest_framework import DjangoFilterBackend
+
 from .models import (
     User, Profile, Skill, Category, Service, Booking,
-    Review, TrustBadge, Message, PaymentTransaction, EscrowTransaction,  Location
+    Review, TrustBadge, Message, PaymentTransaction,
+    EscrowTransaction, Location
 )
-from django_filters.rest_framework import DjangoFilterBackend
-from rest_framework.filters import SearchFilter, OrderingFilter
-from .filters import ServiceFilter
-
 from .serializers import (
     UserSerializer, ProfileSerializer, SkillSerializer,
     CategorySerializer, ServiceSerializer, BookingSerializer,
     ReviewSerializer, TrustBadgeSerializer, MessageSerializer,
-    PaymentTransactionSerializer, EscrowTransactionSerializer, LocationSerializer, SignupSerializer
+    PaymentTransactionSerializer, EscrowTransactionSerializer,
+    LocationSerializer, SignupSerializer
 )
-from rest_framework.authtoken.models import Token
-from django.contrib.auth import authenticate
-from django.contrib.auth.hashers import make_password
-from django.contrib.auth import get_user_model
-from django.utils.http import urlsafe_base64_decode
-from django.contrib.auth import get_user_model
-from django.contrib.auth.hashers import make_password
-from django.contrib.auth.tokens import default_token_generator
-from django.utils.http import urlsafe_base64_encode
-from django.utils.encoding import force_bytes
-from rest_framework.views import APIView
-from rest_framework.response import Response
-from rest_framework import status, permissions
-from rest_framework.authtoken.models import Token
-from django.core.mail import send_mail
-from django.urls import reverse
-from django.utils.http import urlsafe_base64_decode
-from django.utils.encoding import force_str
-from django.core.mail import EmailMultiAlternatives
+from .filters import ServiceFilter
 from .utils.email import send_verification_email
-import logging
 
 logger = logging.getLogger(__name__)
 User = get_user_model()
+
 # --- API Views ---
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def check_auth(request):
+    return Response({"authenticated": True, "user": request.user.username})
 
 # --- 1. UserViewSet ---
+
+class AuthStatusView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        return Response({
+            "is_authenticated": True,
+            "user": {
+                "id": request.user.id,
+                "email": request.user.email,
+                "username": request.user.username
+            }
+        })
+
 class UserViewSet(viewsets.ModelViewSet):
     queryset = User.objects.all()
     serializer_class = UserSerializer
@@ -148,7 +159,7 @@ class PaymentTransactionViewSet(viewsets.ModelViewSet):
             return Response({'status': 'Escrow released'})
         return Response({'error': 'Invalid state'}, status=400)
 
-# --- Dashboard Views ---
+# --- 11. Dashboard Views ---
 class ProviderDashboardView(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -190,6 +201,7 @@ class ProviderDashboardView(APIView):
         }
         return Response(data)
 
+# --- 12. Admin Dashboard View ---
 class AdminDashboardView(APIView):
     permission_classes = [IsAdminUser]
 
@@ -215,6 +227,7 @@ class AdminDashboardView(APIView):
         }
         return Response(data)
 
+# --- 13. Customer Dashboard view ---
 class CustomerDashboardView(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -245,6 +258,7 @@ class LocationListView(generics.ListAPIView):
     filter_backends = [filters.SearchFilter, DjangoFilterBackend]
     search_fields = ['city', 'state', 'country']
     filterset_fields = ['city', 'state', 'country']
+
 class LoginView(APIView):
     permission_classes = [permissions.AllowAny]
     def post(self, request):
@@ -284,6 +298,21 @@ class LoginView(APIView):
             return response
 
         return Response({"detail": "Invalid credentials"}, status=status.HTTP_401_UNAUTHORIZED)
+
+class LogoutView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        try:
+            # Delete the token from database
+            request.user.auth_token.delete()
+        except Exception:
+            pass  # In case token was already deleted
+
+        # Clear the cookie
+        response = Response({"message": "Successfully logged out."}, status=status.HTTP_200_OK)
+        response.delete_cookie("token")
+        return response
 
 # --- Signup and Email Verification Views ---
 class SignupView(APIView):
@@ -332,7 +361,6 @@ class SignupView(APIView):
             "message": "Signup successful. Please check your email to verify your account."
         }, status=status.HTTP_201_CREATED)
 
-
 class VerifyEmailView(APIView):
     permission_classes = [permissions.AllowAny]
 
@@ -347,10 +375,14 @@ class VerifyEmailView(APIView):
             user.is_active = True
             user.is_verified = True
             user.save()
-            # return Response({"message": "Email verified successfully. You can now log in."})
-            return redirect("http://localhost:3000/login")  
-        else:
-            return Response({"message": "Invalid or expired token."}, status=status.HTTP_400_BAD_REQUEST)
+            # ✅ Redirect to frontend login page
+            frontend_url = getattr(settings, "FRONTEND_URL", "http://localhost:3000")
+            return redirect(f"{frontend_url}/login?verified=true")
+
+        return Response(
+            {"message": "Invalid or expired token."},
+            status=status.HTTP_400_BAD_REQUEST
+        )
 
 class ResendVerificationView(APIView):
     permission_classes = [permissions.IsAuthenticated]

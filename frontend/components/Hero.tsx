@@ -2,49 +2,71 @@
 "use client";
 import Image from "next/image";
 import Link from "next/link";
-import { Button } from "@/components/ui/button"; // Using ShadCN or Tailwind-based button
+import { Button } from "@/components/ui/button"; // Using ShadCN or Tailwind-based butt// import { isLoggedIn, logout } from "../utils/auth";
+import { useAuth } from "../context/AuthContext";
 
 export default function Hero() {
+  // const loggedIn = isLoggedIn()
+  const { authenticated, username, logout } = useAuth();
+
   return (
     <section className="relative h-screen w-full overflow-hidden">
-      {/* Background Image */}
-      <div className="absolute inset-0 z-0">
-        <Image
-          src="/images/hero-2.jpeg" // Ensure this is in your /public/images folder
-          alt="Hero background"
-          fill
-          className="object-cover"
-          priority
-        />
-        {/* Optional dark overlay */}
-        <div className="absolute inset-0 bg-blue-950 bg-opacity-60" />
+      {/* Background */}
+      <div className="absolute inset-0 z-0 pointer-events-none">
+        <div className="absolute inset-0 bg-blue-950 bg-opacity-60 pointer-events-none" />
       </div>
-      {/* Top Navigation */}
-      <div className="absolute top-0 left-0 w-full z-20 flex items-center justify-between px-6 py-5">
+
+      {/* Navigation */}
+      <div className="relative top-0 left-0 w-full z-20 flex items-center justify-between px-6 py-5">
         {/* Logo */}
         <div className="flex items-center gap-2">
-          <Image src="/images/icon.jpeg" alt="SkillSwap Logo" width={30} height={30} />
+          <Image
+            src="/images/logo.jpeg"
+            alt="SkillSwap Logo"
+            width={30}
+            height={30}
+          />
           <h1 className="text-white text-2xl font-bold tracking-wide">
             SkillSwap
           </h1>
         </div>
 
-        {/* Buttons */}
-        <div className="flex items-center gap-4">
-          
-          <a href="/login" >
-            <Button
-              variant="ghost"
-              className="w-full text-white hover:bg-white hover:text-blue-600 transition-colors"
-            >
-              Log In
-            </Button>
-          </a>
-          <a href="/signup">
-            <Button className="w-full bg-blue-600 hover:bg-blue-700 text-white transition-colors">
-              Sign Up
-            </Button>
-          </a>
+        {/* Conditional buttons */}
+        <div className="relative flex items-center gap-4 z-20">
+          {!authenticated ? (
+            <>
+              <Button
+                asChild
+                variant="ghost"
+                className="text-white hover:bg-white hover:text-blue-600"
+              >
+                <Link href="/login">Log In</Link>
+              </Button>
+              <Button
+                asChild
+                className="bg-blue-600 hover:bg-blue-700 text-white"
+              >
+                <Link href="/signup">Sign Up</Link>
+              </Button>
+            </>
+          ) : (
+            <>
+              <span className="text-white">Hi, {username}</span>
+              <Button
+                asChild
+                variant="ghost"
+                className="text-white hover:bg-white hover:text-blue-600"
+              >
+                <Link href="/dashboard">Dashboard</Link>
+              </Button>
+              <Button
+                onClick={logout}
+                className="bg-red-600 hover:bg-red-700 text-white"
+              >
+                Logout
+              </Button>
+            </>
+          )}
         </div>
       </div>
 
