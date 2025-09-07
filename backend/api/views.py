@@ -42,13 +42,7 @@ logger = logging.getLogger(__name__)
 User = get_user_model()
 
 # --- API Views ---
-@api_view(['GET'])
-@permission_classes([IsAuthenticated])
-def check_auth(request):
-    return Response({"authenticated": True, "user": request.user.username})
-
 # --- 1. UserViewSet ---
-
 class AuthStatusView(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -159,6 +153,11 @@ class PaymentTransactionViewSet(viewsets.ModelViewSet):
             return Response({'status': 'Escrow released'})
         return Response({'error': 'Invalid state'}, status=400)
 
+class EscrowTransactionViewSet(viewsets.ModelViewSet):
+    queryset = EscrowTransaction.objects.all()
+    serializer_class = EscrowTransactionSerializer
+    permission_classes = [IsAdminUser]
+
 # --- 11. Dashboard Views ---
 class ProviderDashboardView(APIView):
     permission_classes = [IsAuthenticated]
@@ -247,10 +246,6 @@ class CustomerDashboardView(APIView):
         }
         return Response(data)
     
-class EscrowTransactionViewSet(viewsets.ModelViewSet):
-    queryset = EscrowTransaction.objects.all()
-    serializer_class = EscrowTransactionSerializer
-    permission_classes = [IsAdminUser]
 
 class LocationListView(generics.ListAPIView):
     queryset = Location.objects.all()
@@ -395,4 +390,4 @@ class ResendVerificationView(APIView):
         send_verification_email(user, request)
         return Response({"message": "Verification email resent successfully."})
 
-# --- End of Views ---                                                                                                                                        
+# --- End of Views ---                                                                                                                                        h

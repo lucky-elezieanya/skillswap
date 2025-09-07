@@ -8,7 +8,7 @@ from .views import (
     BookingViewSet, ReviewViewSet, TrustBadgeViewSet, MessageViewSet, PaymentTransactionViewSet,
     ProviderDashboardView, AdminDashboardView, CustomerDashboardView,
     LocationListView, LoginView, LogoutView, SignupView,
-    VerifyEmailView, ResendVerificationView, AuthStatusView, check_auth
+    VerifyEmailView, ResendVerificationView, AuthStatusView
 )
 
 router = DefaultRouter()
@@ -28,13 +28,12 @@ urlpatterns = [
 
     # Auth
     # urls.py
-    # path("auth/status/", check_auth, name="check_auth"),
-    path("auth/status/", AuthStatusView.as_view(), name="auth-status"),
+    path('auth/status/', AuthStatusView.as_view(), name="auth-status"),
     path('login/', LoginView.as_view(), name='login'),
     path('logout/', LogoutView.as_view(), name='logout'),
     path('signup/', SignupView.as_view(), name='signup'),
-    path("verify-email/<uidb64>/<token>/", VerifyEmailView.as_view(), name="verify-email"),
-    path("resend-verification/", ResendVerificationView.as_view(), name="resend-verification"),
+    path('verify-email/<uidb64>/<token>/', VerifyEmailView.as_view(), name='verify-email'),
+    path('resend-verification/', ResendVerificationView.as_view(), name='resend-verification'),
     # Dashboards
     path('dashboard/provider/', ProviderDashboardView.as_view(), name='provider-dashboard'),
     path('dashboard/admin/', AdminDashboardView.as_view(), name='admin-dashboard'),
